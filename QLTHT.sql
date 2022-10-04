@@ -58,7 +58,7 @@ Create table [DICHVU]
 (
 	[MADV] Varchar(10) NOT NULL, UNIQUE ([MADV]),
 	[TENDV] Nvarchar(20) NOT NULL,
-	[MOTA] Ntext NOT NULL,
+	[MOTA] NVarchar(500) NOT NULL,
 	[GIALEVACUOITUAN] Decimal(10,1) NOT NULL Check (GIALEVACUOITUAN > 0),
 	[GIANGAYTHUONG] Decimal(10,1) NOT NULL Check (GIANGAYTHUONG > 0),
 Primary Key ([MADV])
@@ -92,10 +92,10 @@ Create table [SANPHAM]
 	[MASP] Varchar(10) NOT NULL, UNIQUE ([MASP]),
 	[MADM] Varchar(10) NOT NULL,
 	[TENSP] Nvarchar(50) NOT NULL,
-	[GIA] Numeric(10,2) Default 0 NOT NULL,
-	[MOTA] Ntext NOT NULL,
-	[GIAMGIA] Tinyint Default 0 NOT NULL,
-	[TRANGTHAI] Bit Default 0 NOT NULL,
+	[GIA] Numeric(10,1) Default 0 NOT NULL,
+	[MOTA] NVarchar(500) NOT NULL,
+	[GIAMGIA] Tinyint Default 0 NULL,
+	[TRANGTHAI] Bit Default 0 NOT NULL CHECK(TRANGTHAI IN (1,0)),
 	[MATH] Varchar(10) NOT NULL,
 Primary Key ([MASP])
 ) 
@@ -115,7 +115,7 @@ Create table [PHIEUDATLICH]
 	[SOPDL] Varchar(10) NOT NULL, UNIQUE ([SOPDL]),
 	[NGAYDL] date Default FORMAT (getdate(), 'dd-MM-yyyy') NOT NULL Check (NGAYDL >= FORMAT (getdate(), 'dd-MM-yyyy')),
 	[GIODL] date Default FORMAT (getdate(), 'hh:mm') NOT NULL Check (GIODL > FORMAT (getdate(), 'hh:mm')),
-	[CHUTHICH] Ntext NULL,
+	[CHUTHICH] NVarchar(500) NULL,
 	[MANV] Varchar(10) NOT NULL,
 	[MAKH] Varchar(20) NOT NULL,
 	[MASALON] Varchar(10) NOT NULL,
@@ -136,7 +136,7 @@ Create table [HOADON]
 (
 	[SOHD] Varchar(10) NOT NULL, UNIQUE ([SOHD]),
 	[NGAYTHANHTOAN] date Default FORMAT (getdate(), 'dd-MM-yyyy') NOT NULL Check (NGAYTHANHTOAN >= FORMAT (getdate(), 'dd-MM-yyyy')),
-	[TONG_TIEN] Numeric(10,2) NOT NULL,
+	[TONG_TIEN] Numeric(10,1) NOT NULL,
 	[MAKM] Varchar(10) NOT NULL,
 	[TRANGTHAI] Bit Default 0 NOT NULL Check (TRANGTHAI IN (1,0)),
 	[MAPTTT] Varchar(100) NOT NULL,
@@ -147,8 +147,8 @@ go
 Create table [KHUYENMAI]
 (
 	[MAKM] Varchar(10) NOT NULL, UNIQUE ([MAKM]),
-	[NOIDUNG] Ntext NOT NULL,
-	[DIEUKIEN] Ntext NOT NULL,
+	[NOIDUNG] NVarchar(500) NOT NULL,
+	[DIEUKIEN] NVarchar(500) NOT NULL,
 Primary Key ([MAKM])
 ) 
 go
@@ -182,7 +182,7 @@ Create table [CHITIETPN]
 	[SOPHIEU] Varchar(10) NOT NULL,
 	[MASP] Varchar(10) NOT NULL,
 	[SOLUONG] Tinyint NOT NULL Check (SOLUONG >= 1),
-	[DONGGIANHAP] Numeric(10,2) NOT NULL Check (DONGGIANHAP > 0),
+	[DONGGIANHAP] Numeric(10,1) NOT NULL Check (DONGGIANHAP > 0),
 Primary Key ([SOPHIEU],[MASP])
 ) 
 go
@@ -211,7 +211,7 @@ Create table [NHANCUNGCAP]
 (
 	[MANCC] Varchar(10) NOT NULL, UNIQUE ([MANCC]),
 	[TENNCC] Nvarchar(50) NOT NULL,
-	[DIACHI] Ntext NOT NULL,
+	[DIACHI] NVarchar(500) NOT NULL,
 	[EMAIL] Text NULL,
 	[SDTNCC] Varchar(10) NULL Check (len(SDTNCC) = 10),
 Primary Key ([MANCC])
@@ -239,7 +239,7 @@ Create table [BINHLUAN]
 (
 	[MABL] Varchar(10) NOT NULL, UNIQUE ([MABL]),
 	[DANHGIA] Decimal(5,1) Default 0 NOT NULL Check (DANHGIA <= 5),
-	[NOIDUNG] Ntext NOT NULL,
+	[NOIDUNG] NVarchar(500) NOT NULL,
 	[MASP] Varchar(10) NOT NULL,
 Primary Key ([MABL])
 ) 
@@ -251,7 +251,7 @@ Create table [SUKIEN]
 	[TENSUKIEN] Nvarchar(50) NOT NULL,
 	[NGAYBATDAU] date Default FORMAT (getdate(), 'dd-MM-yyyy') NOT NULL Check (NGAYBATDAU >= FORMAT (getdate(), 'dd-MM-yyyy')),
 	[MASP] Varchar(10) NOT NULL,
-	[NOIDUNGSK] Ntext NOT NULL,
+	[NOIDUNGSK] NVarchar(500) NOT NULL,
 	[MALOAI] Varchar(10) NOT NULL,
 	[MADV] Varchar(10) NOT NULL,
 Primary Key ([MASK])
@@ -282,7 +282,7 @@ Create table [LICHSUDAT]
 	[NGAYDADAT] date NOT NULL,
 	[Stylist] Nvarchar(50) NULL,
 	[Skinner] Nvarchar(50) NULL,
-	[ANH] Char(1) NULL,
+	[ANH] NVARCHAR(1000) NULL,
 	[SOHD] Varchar(10) NOT NULL,
 Primary Key ([MALSD])
 ) 
@@ -344,7 +344,7 @@ Create table [BAIVIET]
 (
 	[MAKPKT] Varchar(10) NOT NULL, UNIQUE ([MAKPKT]),
 	[TIEUDE] Nvarchar(100) NOT NULL,
-	[NOIDUNG] Ntext NOT NULL,
+	[NOIDUNG] NVarchar(500) NOT NULL,
 	[ANH] Varbinary(500) NULL,
 	[MALOAI] Varchar(10) NOT NULL,
 	[MASP] Varchar(10) NOT NULL,
@@ -561,6 +561,24 @@ go
 Alter table [SUKIEN] add  foreign key([MALOAI]) references [LOAISUKIEN] ([MALOAI])  on update no action on delete no action 
 go
 
+CREATE TRIGGER updateDateHH on THETV for insert 
+as
+begin
+	update THETV set NGAYHETHAN = DATEADD(DAY, 30, NGAYCAP) 
+end
+
+
+
+go
+
+CREATE TRIGGER autoUpdatePrice on SANPHAM for insert, update
+as
+begin
+	update SANPHAM set GIA = insert.GIA * ((100 - insert.GIAMGIA) / 100) , insert.TRANGTHAI = 0 
+	where (select ct.SOLUONG FROM CHITIETPN as ct)  > 0
+	
+end
+go
 
 insert into LOAITAIKHOAN values('LTKTC', N'Tiêu chuẩn')
 insert into LOAITAIKHOAN values('LTKBS', N'Back & Silver')
@@ -592,22 +610,25 @@ insert into LOAIDMCS values('LDMCS05',N'Chăm sóc cá nhân')
 insert into LOAIDMCS values('LDMCS06',N'Thực phẩm chức năng')
 go
 
-insert into 
 
 
-
-
-go
-CREATE TRIGGER updateDateHH on THETV for insert 
-as
-begin
-	update THETV set NGAYHETHAN = DATEADD(DAY, 30, NGAYCAP) 
-end
-
+INSERT into DANHMUCCHAMSOC VALUES('DMCS01',N'Sáp vuốt tóc','LDMCS01')
+INSERT into DANHMUCCHAMSOC VALUES('DMCS02',N'Gôm giữ nếp','LDMCS01')
+INSERT into DANHMUCCHAMSOC VALUES('DMCS03',N'Máy sấp tóc','LDMCS01')
 go
 
+INSERT into THUONGHIEU Values('TH01',N'SNP ACSYS FOR MEN')
+INSERT into THUONGHIEU Values('TH02',N'30SHINE')
+INSERT into THUONGHIEU Values('TH03',N'GLANZEN')
+INSERT into THUONGHIEU Values('TH04',N'SKINK&DR')
+INSERT into THUONGHIEU Values('TH05',N'REUZEL')
+INSERT into THUONGHIEU Values('TH06',N'THE PLANT BASE')
+go
 
-select * from THETV
+INSERT into SANPHAM(MASP,MADM,TENSP,GIA,MOTA,MATH) VALUES('SP01','DMCS01',N'Sáp Reuzel Concrete Hold Matte Pomade - Bản mới nhất',424,N'Độ bóng mờ tạo sự tự nhiên cho mái tóc.Không gây nặng tóc, khó chịu, bết dính.Dễ dàng gội sạch bằng các loại đầu gội thông thường.Mùi hương Vani tinh tế mang đến cho anh em sự cuốn hút, lịch lãm và đẳng cấp.Concrete Hold Matte Pomade tạo độ kết dính, tăng độ kết cấu giúp tóc có những Texture hoặc Volume ấn tượng.Khả năng giữ nếp mạnh mẽ suốt cả ngày dài, đặc biệt không làm khô tóc nên anh em dễ dàng Restyle kiểu tóc theo ý muốn.','TH05')
+INSERT into SANPHAM(MASP,MADM,TENSP,GIA,MOTA,MATH) VALUES('SP02','DMCS03',N'Combo Tóc Đẹp Máy Sấy Tóc Sharkway + Tinh Dầu Argan Phục Hồi Tóc Hư Tổn',359,N'Sở hữu ngay Shark Way - Siêu phẩm máy sấy quái vật công suất 1600W vượt trội về hiệu năng trong tầm giá. Sấy là đẹp, Có máy sấy Shark Way và tận hưởng trải nghiệm tự tạo kiểu tóc tại nhà đẹp chuẩn như bước ra từ Salon','TH02')
+
+
 
 
 
