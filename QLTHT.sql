@@ -27,7 +27,7 @@ go
 Create table [KHACHHANG]
 (
 	[MAKH] Varchar(20) NOT NULL, UNIQUE ([MAKH]),
-	[TENKH] Nvarchar(50) NOT NULL,
+	[TENKH] Nvarchar(100) NOT NULL,
 	[SDT] Varchar(10) NOT NULL Check (len(SDT) = 10),
 Primary Key ([MAKH])
 ) 
@@ -40,6 +40,7 @@ Create table [THETV]
 	[NGAYCAP] date Default FORMAT(getdate(), 'dd-MM-yyyy') NOT NULL Check (NGAYCAP >= FORMAT (getdate(), 'dd-MM-yyyy')),
 	[NGAYHETHAN] date NULL,
 	[MALTK] Varchar(10) NOT NULL,
+	[TRANGTHAI] Bit default 0 NOT NULL check (TRANGTHAI IN (1,0)),
 Primary Key ([ID],[MAKH])
 ) 
 go
@@ -47,7 +48,7 @@ go
 Create table [CHINHANH]
 (
 	[MASALON] Varchar(10) NOT NULL, UNIQUE ([MASALON]),
-	[DIACHI] Nvarchar(50) NOT NULL,
+	[DIACHI] Nvarchar(100) NOT NULL,
 	[MAKV] Varchar(20) NOT NULL,
 	[HOTLINE] Tinyint NULL,
 Primary Key ([MASALON])
@@ -57,8 +58,8 @@ go
 Create table [DICHVU]
 (
 	[MADV] Varchar(10) NOT NULL, UNIQUE ([MADV]),
-	[TENDV] Nvarchar(20) NOT NULL,
-	[MOTA] NVarchar(500) NOT NULL,
+	[TENDV] Nvarchar(500) NOT NULL,
+	[MOTA] NVarchar(2000) NOT NULL,
 	[GIALEVACUOITUAN] Decimal(10,1) NOT NULL Check (GIALEVACUOITUAN > 0),
 	[GIANGAYTHUONG] Decimal(10,1) NOT NULL Check (GIANGAYTHUONG > 0),
 Primary Key ([MADV])
@@ -91,7 +92,7 @@ Create table [SANPHAM]
 (
 	[MASP] Varchar(10) NOT NULL, UNIQUE ([MASP]),
 	[MADM] Varchar(10) NOT NULL,
-	[TENSP] Nvarchar(50) NOT NULL,
+	[TENSP] Nvarchar(500) NOT NULL,
 	[GIA] Numeric(10,1) Default 0 NOT NULL,
 	[MOTA] NVarchar(500) NOT NULL,
 	[GIAMGIA] Tinyint Default 0 NULL,
@@ -241,6 +242,7 @@ Create table [BINHLUAN]
 	[DANHGIA] Decimal(5,1) Default 0 NOT NULL Check (DANHGIA <= 5),
 	[NOIDUNG] NVarchar(500) NOT NULL,
 	[MASP] Varchar(10) NOT NULL,
+	[SOHD] Varchar(10) NOT NULL,
 Primary Key ([MABL])
 ) 
 go
@@ -496,6 +498,8 @@ Alter table [CHITIETPHM] add  foreign key([MASP]) references [SANPHAM] ([MASP]) 
 go
 Alter table [BINHLUAN] add  foreign key([MASP]) references [SANPHAM] ([MASP])  on update no action on delete no action 
 go
+Alter table [BINHLUAN] add  foreign key([SOHD]) references [HOADON] ([SOHD])  on update no action on delete no action 
+go
 Alter table [SUKIEN] add  foreign key([MASP]) references [SANPHAM] ([MASP])  on update no action on delete no action 
 go
 Alter table [CHITIETPHIEUXUAT] add  foreign key([MASP]) references [SANPHAM] ([MASP])  on update no action on delete no action 
@@ -561,25 +565,76 @@ go
 Alter table [SUKIEN] add  foreign key([MALOAI]) references [LOAISUKIEN] ([MALOAI])  on update no action on delete no action 
 go
 
-CREATE TRIGGER updateDateHH on THETV for insert 
+Create TRIGGER updateDateHH on THETV for insert, update 
 as
 begin
-	update THETV set NGAYHETHAN = DATEADD(DAY, 30, NGAYCAP) 
-end
-
-
-
-go
-
-CREATE TRIGGER autoUpdatePrice on SANPHAM for insert, update
-as
-begin
-	update SANPHAM set GIA = insert.GIA * ((100 - insert.GIAMGIA) / 100) , insert.TRANGTHAI = 0 
-	where (select ct.SOLUONG FROM CHITIETPN as ct)  > 0
+	update THETV set NGAYHETHAN = DATEADD(DAY, 30, inserted.NGAYCAP) from THETV join inserted on THETV.ID = inserted.ID
 	
 end
 go
 
+create trigger deleteTHETV on THETV for delete
+as
+begin 
+	declare @count int
+	select @count = COUNT(*) from THETV join deleted on THETV.ID = deleted.ID and deleted.TRANGTHAI  < 1
+	if(@count >= 1)
+		begin
+			print N'Khong duoc phep xoa'
+			rollback tran
+		end
+end
+go
+
+create trigger deleteUser on KHACHHANG for delete
+as
+begin
+	declare @count int
+	select @count = COUNT(*) from KHACHHANG join deleted on deleted.MAKH = KHACHHANG.MAKH where KHACHHANG.MAKH  in (select THETV.MAKH from THETV)
+	
+	if(@count > 0)
+	begin
+	print N'Ban phai xoa khach hang trong bang THETV'
+		rollback tran
+	end
+
+end
+go
+
+create trigger updatePriceProduct on SANPHAM for insert, update
+as
+begin
+	update SANPHAM set SANPHAM.GIA = inserted.GIA *((100 - inserted.GIAMGIA) / 100), SANPHAM.TRANGTHAI = inserted.TRANGTHAI from SANPHAM join inserted on SANPHAM.MASP = inserted.MASP
+end
+go
+
+create trigger updateStatusProductPX on CHITIETPHIEUXUAT for insert, update
+as
+begin
+	declare @count int
+	
+	select @count =(inserted.SOLUONG - CHITIETPN.SOLUONG) from CHITIETPN join inserted on inserted.MASP = CHITIETPN.MASP
+
+	
+	if(@count > 0)
+		begin
+			Print N'So long san pham khong du'
+			rollback tran
+		end
+	if(@count = 0)
+		begin
+			update SANPHAM set SANPHAM.TRANGTHAI = 1
+		end
+	if(@count < 0)
+	begin
+		update SANPHAM set SANPHAM.TRANGTHAI = 0
+	end
+end
+go
+
+
+
+go
 insert into LOAITAIKHOAN values('LTKTC', N'Tiêu chuẩn')
 insert into LOAITAIKHOAN values('LTKBS', N'Back & Silver')
 insert into LOAITAIKHOAN values('LTKG', N'Gold')
@@ -595,7 +650,7 @@ insert into THETV(ID,MAKH,MALTK) values('TTV03','KH03','LTKBS')
 
 go
 
-insert into DICHVU values('DV01',N'ShineCombo cắt gội 10 bước',N'Bước 1:Trải nghiệm bắt đầu khi bạn được đón tiếp chu đáo tận cửa bởi Quản lý cửa hàng (hoặc lễ tân trưởng) của 30Shine.Bước 2:Bạn sẽ được thưởng thức miễn phí món passion fruit mocktail đặc biệt, ngồi nghe nhạc trong không gian chờ riêng biệt để đợi đến lịch hẹn đã đặt trước.Bước 3:Sau đó, skinner xinh đẹp của 30Shine sẽ mời bạn nằm xuống giường massage đặc biệt (massage cột sống, chống đau lưng) để bắt đầu rửa mặt, massage, gội đầu đầy thư giãn. Bàn tay khéo léo của Skinner sẽ giúp anh quên đi mọi căng thẳng ngay từ những động tác khai huyệt điều hòa đầu tiên.Bước 4:Massage luôn là phần thưởng tuyệt vời sau những nỗ lực không ngừng của bạn. Thả hồn với từng huyệt đạo trên khuôn mặt được chăm sóc bởi Skinner, nghe tiếng nước chảy róc rách bên tai với màn rửa tai bọt sạch sâu sảng khoái.Bước 5:Đôi mắt làm việc nhiều trên điện thoại, máy tính cũng trở nên êm dịu hơn khi được xối nước ấm thác đổ. Cuối cùng, cổ vai gáy sẽ được chữa mỏi hoàn toàn với bước kéo khăn giãn cơ.Bước 6:Bạn cũng sẽ được chăm sóc da kỹ lưỡng bởi những loại mỹ phẩm và thiết bị tốt nhất của 30Shine, bao gồm 2 trải nghiệm tuyệt vời Rửa mặt – massage tinh chất nha đam thẩm thấu và Hút mụn – phun nước hoa hồng công nghệ cao. Tất cả nhằm giúp bạn có một làn da sáng, mịn hơn. Skinner sẽ hoàn tất việc chăm sóc cho bạn sau khi chắc chắn từng chiếc móng tay đã được cắt dũa cẩn thận.Bước 7:Trong lần đầu tiên bạn tới 30Shine, Stylist chuyên nghiệp sẽ trao đổi thật kỹ để thấu hiểu và chọn ra kiểu tóc tuyệt vời nhất với gương mặt và phong cách sống của bạn. Từ những lần sau, bạn chỉ cần ngả lưng và thư giãn giống như hàng ngàn thành viên quen thuộc khác. Stylist sẽ hiểu chính xác và cho bạn đúng kiểu tóc mong muốn.Bước 8:Kiểu tóc mới được tạo hình chuẩn xác dưới đôi tài hoa của Stylist. Với 30Shine, cắt tóc mới ở phái mạnh luôn là một nghi thức đánh dấu sự thay đổi tích cực trong cuộc sống.Bước 9:Bạn sẽ được theo dõi các video giải trí, bóng đá đầy thú vị trong quá trình mái tóc được tạo kiểu khiến thời gian như ngắn lại, giống như đang du hành trên chiếc máy bay hạng sang.Bước 10:Stylist sẽ xả sạch tóc con để đảm bảo sự hoàn hảo cho mái tóc của bạn. Sau đó là bước cạo mặt êm ái cho làn da mịn màng.Bước 11:Bước hoàn thiện cuối cùng, vuốt sáp – xịt gôm tạo kiểu cao cấp, tạo hình cho mái tóc. Stylist đồng thời giúp bạn cách để vuốt gôm sáp tại nhà để mái tóc đẹp chuẩn phong cách mỗi ngày.Bước 12:Cuối cùng, khi bước ra khỏi 30Shine, bạn hãy tiếp tục hành trình cuộc sống mới của riêng mình với tinh thần mới tràn đầy năng lượng một diện mạo mới tỏa sáng.',100,120)
+insert into DICHVU values('DV01',N'ShineCombo cắt gội 10 bước',N'Combo “đặc sản” của 30Shine, bạn sẽ cùng chúng tôi trải nghiệm chuyến hành trình tỏa sáng đầy thú vị - nơi mỗi người đàn ông không chỉ cắt tóc mà còn tìm thấy nhiều hơn như thế',100,120)
 insert into DICHVU values('DV02',N'Gội masssage dưỡng sinh', N'Thư giãn, giải tỏa mệt mỏi ư! Đơn giản, các bạn skinner với bài gội đầu massage dưỡng sinh sẽ giúp anh. Sau cùng stylist sẽ vuốt sáp tạo kiểu để đẹp trai cả ngày',40,40)
 insert into DICHVU values('DV03',N'Combo Gội nâng cấp thư giãn và sấy vuốt tạo kiểu', N'Gội thư giãn Nâng cấp các động tác massage mới, gấp đôi thời gian cũ, sấy vuốt sáp tạo kiểu, miễn phí giường massage công nghệ mới, sửa rửa mặt nhập khẩu Hàn Quốc',50,50)
 insert into DICHVU values('DV04',N'Massage cổ, vai, gáy bạc hà cam ngọt',N'Là thần dược giảm đau nhức cơ, xơ cứng, tinh dầu bạc hà mát lạnh kết hợp cùng đôi bàn tay uyển chuyển của skinner với bài massage cổ truyền tác động 12 huyệt đạo điệu nghệ cơn đau mỏi của anh sẽ nhanh chóng tan biến',45,45)
@@ -615,6 +670,18 @@ go
 INSERT into DANHMUCCHAMSOC VALUES('DMCS01',N'Sáp vuốt tóc','LDMCS01')
 INSERT into DANHMUCCHAMSOC VALUES('DMCS02',N'Gôm giữ nếp','LDMCS01')
 INSERT into DANHMUCCHAMSOC VALUES('DMCS03',N'Máy sấp tóc','LDMCS01')
+
+INSERT into DANHMUCCHAMSOC VALUES('DMCS04',N'Sữa rửa mặt','LDMCS02')
+INSERT into DANHMUCCHAMSOC VALUES('DMCS05',N'Dưỡng da','LDMCS02')
+INSERT into DANHMUCCHAMSOC VALUES('DMCS06',N'Kem chống nắng','LDMCS02')
+
+INSERT into DANHMUCCHAMSOC VALUES('DMCS07',N'Dầu gọi','LDMCS03')
+INSERT into DANHMUCCHAMSOC VALUES('DMCS08',N'Dầu xã','LDMCS03')
+INSERT into DANHMUCCHAMSOC VALUES('DMCS09',N'Dưỡng tóc','LDMCS03')
+
+
+
+
 go
 
 INSERT into THUONGHIEU Values('TH01',N'SNP ACSYS FOR MEN')
@@ -627,9 +694,7 @@ go
 
 INSERT into SANPHAM(MASP,MADM,TENSP,GIA,MOTA,MATH) VALUES('SP01','DMCS01',N'Sáp Reuzel Concrete Hold Matte Pomade - Bản mới nhất',424,N'Độ bóng mờ tạo sự tự nhiên cho mái tóc.Không gây nặng tóc, khó chịu, bết dính.Dễ dàng gội sạch bằng các loại đầu gội thông thường.Mùi hương Vani tinh tế mang đến cho anh em sự cuốn hút, lịch lãm và đẳng cấp.Concrete Hold Matte Pomade tạo độ kết dính, tăng độ kết cấu giúp tóc có những Texture hoặc Volume ấn tượng.Khả năng giữ nếp mạnh mẽ suốt cả ngày dài, đặc biệt không làm khô tóc nên anh em dễ dàng Restyle kiểu tóc theo ý muốn.','TH05')
 INSERT into SANPHAM(MASP,MADM,TENSP,GIA,MOTA,MATH) VALUES('SP02','DMCS03',N'Combo Tóc Đẹp Máy Sấy Tóc Sharkway + Tinh Dầu Argan Phục Hồi Tóc Hư Tổn',359,N'Sở hữu ngay Shark Way - Siêu phẩm máy sấy quái vật công suất 1600W vượt trội về hiệu năng trong tầm giá. Sấy là đẹp, Có máy sấy Shark Way và tận hưởng trải nghiệm tự tạo kiểu tóc tại nhà đẹp chuẩn như bước ra từ Salon','TH02')
-
-
-
+INSERT into SANPHAM(MASP,MADM,TENSP,GIA,MOTA,GIAMGIA,MATH) VALUES('SP03','DMCS04',N'Combo Giảm Mụn, Mờ Nám, Da Trắng Mịn Màng Grinif Lớn',839,N'Combo Giảm Mụn, Mờ Nám, Da Trắng Mịn Màng Grinif Nhỏ',6,'TH01')
 
 
 
