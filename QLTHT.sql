@@ -47,11 +47,11 @@ go
 
 Create table [CHINHANH]
 (
-	[MASALON] Varchar(10) NOT NULL, UNIQUE ([MASALON]),
-	[DIACHI] Nvarchar(100) NOT NULL,
+	[MACN] Varchar(10) NOT NULL, UNIQUE ([MACN]),
+	[DIACHI] Nvarchar(1000) NOT NULL,
 	[MAKV] Varchar(20) NOT NULL,
-	[HOTLINE] Tinyint NULL,
-Primary Key ([MASALON])
+	[HOTLINE] Varchar(10) NULL default '1800282830' check(len(HOTLINE) = 10),
+Primary Key ([MACN])
 ) 
 go
 
@@ -78,11 +78,11 @@ Create table [NHANVIEN]
 (
 	[MANV] Varchar(10) NOT NULL, UNIQUE ([MANV]),
 	[TENNV] Nvarchar(50) NOT NULL,
-	[NAMSINH] Varchar(15) NOT NULL,
-	[GIOITINH] Varchar(10) NOT NULL,
+	[NAMSINH] date NOT NULL,
+	[GIOITINH] Bit NOT NULL default 0 check(GIOITINH IN (1,0)), 
 	[DIACHI] Nvarchar(50) NULL,
 	[MACV] Varchar(10) NOT NULL,
-	[MASALON] Varchar(10) NOT NULL,
+	[MACN] Varchar(10) NOT NULL,
 	[NGAYVAOLAM] date NOT NULL,
 Primary Key ([MANV])
 ) 
@@ -119,7 +119,7 @@ Create table [PHIEUDATLICH]
 	[CHUTHICH] NVarchar(500) NULL,
 	[MANV] Varchar(10) NOT NULL,
 	[MAKH] Varchar(20) NOT NULL,
-	[MASALON] Varchar(10) NOT NULL,
+	[MACN] Varchar(10) NOT NULL,
 Primary Key ([SOPDL])
 ) 
 go
@@ -466,9 +466,9 @@ Alter table [PHIEUDATLICH] add  foreign key([MAKH]) references [KHACHHANG] ([MAK
 go
 Alter table [PHIEUMUAHANG] add  foreign key([MAKH]) references [KHACHHANG] ([MAKH])  on update no action on delete no action 
 go
-Alter table [PHIEUDATLICH] add  foreign key([MASALON]) references [CHINHANH] ([MASALON])  on update no action on delete no action 
+Alter table [PHIEUDATLICH] add  foreign key([MACN]) references [CHINHANH] ([MACN])  on update no action on delete no action 
 go
-Alter table [NHANVIEN] add  foreign key([MASALON]) references [CHINHANH] ([MASALON])  on update no action on delete no action 
+Alter table [NHANVIEN] add  foreign key([MACN]) references [CHINHANH] ([MACN])  on update no action on delete no action 
 go
 Alter table [CHITIETDICHVU] add  foreign key([MADV]) references [DICHVU] ([MADV])  on update no action on delete no action 
 go
@@ -608,14 +608,13 @@ begin
 end
 go
 
+
 create trigger updateStatusProductPX on CHITIETPHIEUXUAT for insert, update
 as
 begin
 	declare @count int
 	
 	select @count =(inserted.SOLUONG - CHITIETPN.SOLUONG) from CHITIETPN join inserted on inserted.MASP = CHITIETPN.MASP
-
-	
 	if(@count > 0)
 		begin
 			Print N'So long san pham khong du'
@@ -644,11 +643,47 @@ insert into KHACHHANG values('KH01',N'Nguyễn văn a', '0971232329')
 insert into KHACHHANG values('KH02',N'Nguyễn văn b', '0127809234')
 insert into KHACHHANG values('KH03',N'Nguyễn văn c', '0453345342')
 go
+
 insert into THETV(ID,MAKH,MALTK) values('TTV01','KH01','LTKG')
 insert into THETV(ID,MAKH,MALTK) values('TTV02','KH02','LTKTC')
 insert into THETV(ID,MAKH,MALTK) values('TTV03','KH03','LTKBS')
 
 go
+insert into CHUCVU values('CV01',N'Stylist-thợ cắt', 2.0)
+insert into CHUCVU values('CV02',N'Skinner-thợ gội', 1.5)
+insert into CHUCVU values('CV03',N'Lễ tân', 1.5)
+insert into CHUCVU values('CV04',N'Bảo vệ', 1.25)
+insert into CHUCVU values('CV05',N'Quản lý',3.0)
+go
+
+insert into KHUVUC values('KVBT',N'Bình Thạnh')
+insert into KHUVUC values('KVGV',N'Gò Vấp')
+insert into KHUVUC values('KVQ9',N'Quận 9')
+go
+insert into CHINHANH(MACN,DIACHI,MAKV) values('CNQ901',N'194 Lê Văn Việt, P. Tăng Nhơn Phú B, Quận 9, TP Hồ Chí Minh','KVQ9')
+insert into CHINHANH(MACN,DIACHI,MAKV) values('CNBT01',N'449 Bạch Đằng, Phường 2, Q.Bình Thạnh, TP Hồ Chí Minh','KVBT')
+insert into CHINHANH(MACN,DIACHI,MAKV) values('CNGV01',N'1180 Quang Trung, Phường 8, Q.Gò Vấp, TP Hồ Chí Minh','KVGV')
+
+go
+insert into NHANVIEN(MANV,TENNV,NAMSINH,GIOITINH,NGAYVAOLAM,MACV,MACN) values('NV01',N'Pham Văn Đồng', '1976-02-01',0,GETDATE(),'CV01','CNQ901')
+insert into NHANVIEN(MANV,TENNV,NAMSINH,GIOITINH,NGAYVAOLAM,MACV,MACN) values('NV02',N'Nguyễn Văn Nghi', '1998-03-05',0,GETDATE(),'CV03','CNQ901')
+insert into NHANVIEN(MANV,TENNV,NAMSINH,GIOITINH,NGAYVAOLAM,MACV,MACN) values('NV03',N'Trần Thị Nghỉ', '1999-05-12',1,GETDATE(),'CV02','CNGV01')
+insert into NHANVIEN(MANV,TENNV,NAMSINH,GIOITINH,NGAYVAOLAM,MACV,MACN) values('NV04',N'Nguyễn Văn Đậu', '1990-05-25',0,GETDATE(),'CV05','CNBT01')
+insert into NHANVIEN(MANV,TENNV,NAMSINH,GIOITINH,NGAYVAOLAM,MACV,MACN) values('NV05',N'Tạ Quang Bửu', '1992-08-02',0,GETDATE(),'CV05','CNQ901')
+insert into NHANVIEN(MANV,TENNV,NAMSINH,GIOITINH,NGAYVAOLAM,MACV,MACN) values('NV06',N'Phan Văn Trị', '1988-02-15',0,GETDATE(),'CV05','CNGV01')
+
+go
+insert into DIADIEM values('DDBT',N'Đia điểm Bình Thạnh',N'số 12 Bạch Đằng, Phường 2, Q.Bình Thạnh, TP Hồ Chí Minh','NV04')
+insert into DIADIEM values('DDGV',N'Đia điểm Gò Vấp',N'567 Lê Văn Thọ,Phường 16, Q.Gò Vấp, TP Hồ Chí Minh','NV06')
+insert into DIADIEM values('DDQ9',N'Đia điểm Quận 9',N'189 Tây Hòa, P. Phước Long A, Quận 9, TP Hồ Chí Minh','NV05')
+
+go
+insert into KHO values('KBT',N'Kho Bình Thạnh','0123456789','DDBT','NV04')
+insert into KHO values('KQ9',N'Kho Quận 9','0123456789','DDQ9','NV05')
+insert into KHO values('KGV',N'Kho Gò Vấp','0123456789','DDGV','NV06')
+
+go
+
 
 insert into DICHVU values('DV01',N'ShineCombo cắt gội 10 bước',N'Combo “đặc sản” của 30Shine, bạn sẽ cùng chúng tôi trải nghiệm chuyến hành trình tỏa sáng đầy thú vị - nơi mỗi người đàn ông không chỉ cắt tóc mà còn tìm thấy nhiều hơn như thế',100,120)
 insert into DICHVU values('DV02',N'Gội masssage dưỡng sinh', N'Thư giãn, giải tỏa mệt mỏi ư! Đơn giản, các bạn skinner với bài gội đầu massage dưỡng sinh sẽ giúp anh. Sau cùng stylist sẽ vuốt sáp tạo kiểu để đẹp trai cả ngày',40,40)
@@ -695,11 +730,15 @@ INSERT into THUONGHIEU Values('TH05',N'REUZEL')
 INSERT into THUONGHIEU Values('TH06',N'THE PLANT BASE')
 go
 
-INSERT into SANPHAM(MASP,MADM,TENSP,GIA,MOTA,MATH) VALUES('SP01','DMCS01',N'Sáp Reuzel Concrete Hold Matte Pomade - Bản mới nhất',424,N'Độ bóng mờ tạo sự tự nhiên cho mái tóc.Không gây nặng tóc, khó chịu, bết dính.Dễ dàng gội sạch bằng các loại đầu gội thông thường.Mùi hương Vani tinh tế mang đến cho anh em sự cuốn hút, lịch lãm và đẳng cấp.Concrete Hold Matte Pomade tạo độ kết dính, tăng độ kết cấu giúp tóc có những Texture hoặc Volume ấn tượng.Khả năng giữ nếp mạnh mẽ suốt cả ngày dài, đặc biệt không làm khô tóc nên anh em dễ dàng Restyle kiểu tóc theo ý muốn.','TH05')
-INSERT into SANPHAM(MASP,MADM,TENSP,GIA,MOTA,MATH) VALUES('SP02','DMCS03',N'Combo Tóc Đẹp Máy Sấy Tóc Sharkway + Tinh Dầu Argan Phục Hồi Tóc Hư Tổn',359,N'Sở hữu ngay Shark Way - Siêu phẩm máy sấy quái vật công suất 1600W vượt trội về hiệu năng trong tầm giá. Sấy là đẹp, Có máy sấy Shark Way và tận hưởng trải nghiệm tự tạo kiểu tóc tại nhà đẹp chuẩn như bước ra từ Salon','TH02')
-INSERT into SANPHAM(MASP,MADM,TENSP,GIA,MOTA,GIAMGIA,MATH) VALUES('SP03','DMCS04',N'Combo Giảm Mụn, Mờ Nám, Da Trắng Mịn Màng Grinif Lớn',839,N'Combo Giảm Mụn, Mờ Nám, Da Trắng Mịn Màng Grinif Nhỏ',6,'TH01')
 
 
+INSERT into SANPHAM(MASP,MADM,TENSP,GIA,GIAMGIA,MOTA,MATH) VALUES('SP01','DMCS01',N'Sáp Reuzel Concrete Hold Matte Pomade - Bản mới nhất',424.0,16,N'Độ bóng mờ tạo sự tự nhiên cho mái tóc.Không gây nặng tóc, khó chịu, bết dính.Dễ dàng gội sạch bằng các loại đầu gội thông thường.Mùi hương Vani tinh tế mang đến cho anh em sự cuốn hút, lịch lãm và đẳng cấp.Concrete Hold Matte Pomade tạo độ kết dính, tăng độ kết cấu giúp tóc có những Texture hoặc Volume ấn tượng.Khả năng giữ nếp mạnh mẽ suốt cả ngày dài, đặc biệt không làm khô tóc nên anh em dễ dàng Restyle kiểu tóc theo ý muốn.','TH05')
+INSERT into SANPHAM(MASP,MADM,TENSP,GIA,MOTA,MATH) VALUES('SP02','DMCS03',N'Combo Tóc Đẹp Máy Sấy Tóc Sharkway + Tinh Dầu Argan Phục Hồi Tóc Hư Tổn',359.0,N'Sở hữu ngay Shark Way - Siêu phẩm máy sấy quái vật công suất 1600W vượt trội về hiệu năng trong tầm giá. Sấy là đẹp, Có máy sấy Shark Way và tận hưởng trải nghiệm tự tạo kiểu tóc tại nhà đẹp chuẩn như bước ra từ Salon','TH02')
+INSERT into SANPHAM(MASP,MADM,TENSP,GIA,MOTA,GIAMGIA,MATH) VALUES('SP03','DMCS04',N'Combo Giảm Mụn, Mờ Nám, Da Trắng Mịn Màng Grinif Lớn',839.0,N'Combo Giảm Mụn, Mờ Nám, Da Trắng Mịn Màng Grinif Nhỏ',6,'TH01')
+
+
+
+select * from SANPHAM
 
 
 
