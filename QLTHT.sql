@@ -661,15 +661,14 @@ insert into LOAIDMCS values('LDMCS01',N'Tạo kiểu tóc')
 insert into LOAIDMCS values('LDMCS02',N'Chăm sóc da mặt')
 insert into LOAIDMCS values('LDMCS03',N'Chăm sóc tóc')
 insert into LOAIDMCS values('LDMCS04',N'Chăm sóc cơ thể')
-insert into LOAIDMCS values('LDMCS05',N'Chăm sóc cá nhân')
-insert into LOAIDMCS values('LDMCS06',N'Thực phẩm chức năng')
+insert into LOAIDMCS values('LDMCS05',N'Thực phẩm chức năng')
 go
 
 
 
 INSERT into DANHMUCCHAMSOC VALUES('DMCS01',N'Sáp vuốt tóc','LDMCS01')
 INSERT into DANHMUCCHAMSOC VALUES('DMCS02',N'Gôm giữ nếp','LDMCS01')
-INSERT into DANHMUCCHAMSOC VALUES('DMCS03',N'Máy sấp tóc','LDMCS01')
+INSERT into DANHMUCCHAMSOC VALUES('DMCS03',N'Máy sấy tóc','LDMCS01')
 
 INSERT into DANHMUCCHAMSOC VALUES('DMCS04',N'Sữa rửa mặt','LDMCS02')
 INSERT into DANHMUCCHAMSOC VALUES('DMCS05',N'Dưỡng da','LDMCS02')
@@ -679,7 +678,11 @@ INSERT into DANHMUCCHAMSOC VALUES('DMCS07',N'Dầu gọi','LDMCS03')
 INSERT into DANHMUCCHAMSOC VALUES('DMCS08',N'Dầu xã','LDMCS03')
 INSERT into DANHMUCCHAMSOC VALUES('DMCS09',N'Dưỡng tóc','LDMCS03')
 
+INSERT into DANHMUCCHAMSOC VALUES('DMCS010',N'Sữa tắm','LDMCS04')
+INSERT into DANHMUCCHAMSOC VALUES('DMCS011',N'Nước hoa','LDMCS04')
 
+INSERT into DANHMUCCHAMSOC VALUES('DMCS012',N'Làm đẹp','LDMCS05')
+INSERT into DANHMUCCHAMSOC VALUES('DMCS013',N'Sức khỏe','LDMCS05')
 
 
 go
